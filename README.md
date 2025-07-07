@@ -4,21 +4,29 @@
 ## 1. ros master & follower setup
 ##### master
 conda deactivate
+
 export ROS_MASTER_URI=http://192.168.0.139:11311
+
 export ROS_HOSTNAME=192.168.0.171
+
 source ~/catkin_ws/devel/setup.bash
 
 ##### robochair
 export ROS_MASTER_URI=http://192.168.0.139:11311
+
 export ROS_IP=192.168.0.171  # Your local IP
+
 source devel/setup.bash
+
 roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 vision:=false
 
 ## 2. download and build ros workspace
 Do this on all agent computers
 
 cd ~/catkin_ws
+
 catkin_make
+
 source devel/setup.bash
 
 ## 3. run the task with wheelchair + kinova (robochair) and patient lift (hoyer_sling)
