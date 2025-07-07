@@ -1,7 +1,7 @@
 # ros_chariot_master
 
 
-## 0. ros master & follower setup
+## 1. ros master & follower setup
 ##### master
 conda deactivate
 export ROS_MASTER_URI=http://192.168.0.139:11311
