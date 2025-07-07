@@ -1,0 +1,8 @@
+# scan.yaml
+# format hook_id:[[x_min,x_max,duration],[y_min,y_max,duration],[z_min,z_max,duration]]
+
+initial_poses:
+  hook1:  [[],[-0.15,0.15,10],[]]
+  hook2:  [[-0.2,0.3,10],[],[]]
+  hook3:  [[-0.3,0.3,10],[],[]]
+  hook4:  [[-0.1,0.3,10],[],[]]
