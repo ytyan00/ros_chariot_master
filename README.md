@@ -1,49 +1,60 @@
 # ros_chariot_master
 
 
-0. ros follower
+## 0. ros master & follower setup
+##### master
 conda deactivate
 export ROS_MASTER_URI=http://192.168.0.139:11311
 export ROS_HOSTNAME=192.168.0.171
 source ~/catkin_ws/devel/setup.bash
 
-
-
-
+##### robochair
 export ROS_MASTER_URI=http://192.168.0.139:11311
 export ROS_IP=192.168.0.171  # Your local IP
 source devel/setup.bash
 roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 vision:=false
 
+## 2. download and build ros workspace
+Do this on all agent computers
 
+cd ~/catkin_ws
+catkin_make
+source devel/setup.bash
 
+## 3. run the task with wheelchair + kinova (robochair) and patient lift (hoyer_sling)
 
+##### robochair
 
+###### a) wheelchair and kinova perception
+roslaunch ros_chariot_master robochair_perception.launch
 
+Notes: 
+kinova wrist realsense d435i
 
-1. kinova wrist realsense d435i
-
-##### device info #####
+ device info 
 Device Name: Intel RealSense D435I
 Device Serial No: 036522072362
 
-##### if only one camera connected #####
+ if only one camera connected #####
 roslaunch realsense2_camera rs_camera.launch enable_depth:=false camera:=kinova_wrist
 
-##### if 2 cameras connected #####
+ if 2 cameras connected #####
 roslaunch realsense2_camera rs_camera.launch \
   serial_no:=036522072362 \
   enable_depth:=false \
   camera:=kinova_wrist
-  
+
+ 
+###### b) kinova driver
+roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 vision:=false
+rviz -> recent congif -> kinova_visualization
+
+ 
 ##### compressed image topic #####
 rosrun image_transport republish raw in:=/kinova_wrist/color/image_raw compressed out:=/kinova_wrist/color/image_compressed_master
 
 
-2. kinova driver
 
-roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 vision:=false
-rviz -> recent congif -> kinova_visualization
 
 3. attach image onto the robot (camera_link = d435i_link)
 
