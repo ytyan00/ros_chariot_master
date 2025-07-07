@@ -1,0 +1,12 @@
+<launch>
+  <!-- Launch RealSense camera with specific parameters -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="serial_no" value="036522072362" />
+    <arg name="enable_depth" value="false" />
+    <arg name="camera" value="kinova_wrist" />
+  </include>
+
+  <!-- Static transform between d435i_link and kinova_wrist_link -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="d435i_to_wrist_tf" args="0 0 0 0 -1.5708 -1.5708 d435i_link kinova_wrist_link" />
+</launch>
+
