@@ -1,0 +1,19 @@
+- task_id: kinova_grasp
+  agent  : robochair
+  hook_id: 1
+  command: full
+
+- task_id: wheelchair_move
+  agent  : robochair
+  hook_id: 2
+  command: full
+
+- task_id: kinova_tie
+  agent  : robochair
+  hook_id: 1
+  command: full
+
+- task_id: kinova_tie
+  agent  : robochair
+  hook_id: 3
+  command: tighten
