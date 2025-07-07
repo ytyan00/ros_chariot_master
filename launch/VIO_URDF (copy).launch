@@ -1,0 +1,77 @@
+<launch>
+    <!-- Argument for URDF model and RViz config -->
+    <arg name="model" default="/home/chariot/catkin_ws/src/hoyer_sling_urdf/urdf/hoyer_sling.urdf"/>
+    <arg name="gui" default="true" />
+    <arg name="offline" default="false"/>
+
+    <!-- Load robot description -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+
+    <!-- Joint State Publisher (GUI if set) -->
+    <node if="$(arg gui)" name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+    <node unless="$(arg gui)" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+    <!-- Robot State Publisher -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    
+     <!-- Add static transform between base_link and camera_link -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera_broadcaster" args="0 0 0 3.14159 0 0 camera_link base"/>
+
+
+    <!-- RealSense camera integration -->
+    <include unless="$(arg offline)" file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="align_depth" value="true"/>
+        <arg name="linear_accel_cov" value="1.0"/>
+        <arg name="unite_imu_method" value="linear_interpolation"/>
+        <!-- Publish an RGBD point cloud -->
+        <arg name="filters" value="pointcloud"/>
+        <arg name="enable_pointcloud" value="true"/>
+    </include>
+
+    <!-- IMU Filter for RealSense -->
+    <node pkg="imu_filter_madgwick" type="imu_filter_node" name="ImuFilter">
+        <param name="use_mag" type="bool" value="false" />
+        <param name="_publish_tf" type="bool" value="false" />
+        <param name="_world_frame" type="string" value="enu" />
+        <remap from="/imu/data_raw" to="/camera/imu"/>
+    </node>
+
+    <!-- RTAB-Map for 3D mapping -->
+    <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+        <arg name="args" value="--delete_db_on_start"/>
+        <arg name="rgb_topic" value="/camera/color/image_raw"/>
+        <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+        <arg name="camera_info_topic" value="/camera/color/camera_info"/>
+        <arg name="depth_camera_info_topic" value="/camera/depth/camera_info"/>
+        <arg name="rtabmapviz" value="false"/>
+        <arg name="rtabmap_viz" value="false"/>
+        <arg name="rviz" value="true"/>
+    </include>
+
+    <!-- UKF (Unscented Kalman Filter) for sensor fusion -->
+    <include file="$(find robot_localization)/launch/ukf_template.launch"/>
+    <param name="/ukf_se/frequency" value="300"/>
+    <param name="/ukf_se/base_link_frame" value="camera_link"/>
+    <param name="/ukf_se/odom0" value="rtabmap/odom"/>
+    <rosparam param="/ukf_se/odom0_config">[true,true,true,
+                                            true,true,true,
+                                            true,true,true,
+                                            true,true,true,
+                                            true,true,true]
+    </rosparam>
+    <param name="/ukf_se/odom0_relative" value="true"/>
+    <param name="/ukf_se/odom0_pose_rejection_threshold" value="10000000"/>
+    <param name="/ukf_se/odom0_twist_rejection_threshold" value="10000000"/>
+
+    <param name="/ukf_se/imu0" value="/imu/data"/>
+    <rosparam param="/ukf_se/imu0_config">[false, false, false,
+                                           true,  true,  true,
+                                           true,  true,  true,
+                                           true,  true,  true,
+                                           true,  true,  true]
+    </rosparam>
+    <param name="/ukf_se/imu0_differential" value="true"/>
+    <param name="/ukf_se/imu0_relative" value="false"/>
+    <param name="/ukf_se/use_control" value="false"/>
+</launch>
+

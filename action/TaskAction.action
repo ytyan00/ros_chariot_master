@@ -1,0 +1,12 @@
+# Goal
+string task_id
+int32 hook_id
+string command
+---
+# Result
+string executed_cmd
+bool success
+---
+# Feedback
+string status
+
