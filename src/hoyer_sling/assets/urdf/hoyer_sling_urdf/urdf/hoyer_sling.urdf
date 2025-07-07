@@ -1,0 +1,196 @@
+<?xml version="1.0"?>
+<robot name="hoyer_sling">
+
+
+
+  <!-- Base Link -->
+  <link name="base">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>  <!-- Keep inertial origin neutral -->
+      <mass value="5.0"/>  
+      <inertia ixx="0.5" ixy="0.0" ixz="0.0" iyy="0.5" iyz="0.0" izz="0.5"/>  
+    </inertial>
+    <visual>  
+      <origin xyz="-0.9 0.644 0" rpy="1.57 0 0"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/base.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+	      <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.9 0.644 0" rpy="1.57 0 0"/>  <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/base.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Lift Link -->
+    <link name="lift">
+    <inertial>
+      <origin xyz="0 0 0" rpy="-1.57 0 0"/>
+      <mass value="10.0"/>  
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>  <!-- 设置惯性矩 -->
+    </inertial>
+    <visual>
+      <origin xyz="0.05 -0.019 -0.2" rpy="1.57 0 3.14159"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/lift.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+    <origin xyz="0.05 -0.019 -0.2" rpy="1.57 0 3.14159"/>   <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/lift.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- pitch_frame Link -->
+  <link name="pitch_frame">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="10.0"/>  
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>  <!-- 设置惯性矩 -->
+    </inertial>
+    <visual>
+      <origin xyz="-0.025 0.025 -0.2225" rpy="1.57 0 0"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/inner.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+	  <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="--0.025 0.025 -0.2225" rpy="1.57 0 0"/>  <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/inner.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- frame Link -->
+  <link name="frame">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="10.0"/>  
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>  <!-- 设置惯性矩 -->
+    </inertial>
+    <visual>
+      <origin xyz="0.158 -0.328 -0.055" rpy="1.57 0 3.1415"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/outer.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+	  <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.17 0.32 -0.05" rpy="1.57 0 3,1415"/>  <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/outer.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Left Wheel Link -->
+  <link name="left_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="10.0"/>  
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>  <!-- 设置惯性矩 -->
+    </inertial>
+    <visual>
+      <origin xyz="-0.1075 0.0525 -0.1075" rpy="1.5708 0 0"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/wheel.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+	  <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.1075 0.0525 -0.1075" rpy="1.5708 0 0"/>  <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/wheel.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Right Wheel Link -->
+  <link name="right_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="10.0"/>  
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>  <!-- 设置惯性矩 -->
+    </inertial>
+    <visual>
+      <origin xyz="-0.1075 0.0525 -0.1075" rpy="1.5708 0 0"/>  <!-- Apply rotation to visual -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/wheel.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+	  <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.1075 0.0525 -0.1075" rpy="1.5708 0 0"/>  <!-- Apply rotation to collision geometry if necessary -->
+      <geometry>
+        <mesh filename="package://hoyer_sling_urdf/meshes/hoyer_lift_agent_urdf/wheel.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- Joint between base and lift -->
+  <joint name="base_to_lift" type="continuous">
+    <parent link="base"/>
+    <child link="lift"/>
+    <origin xyz="0.325 0.0 1.2" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>  
+    <limit effort="50.0" velocity="1.0"/>  
+  </joint>
+  
+  <!-- Joint between base and left wheel -->
+  <joint name="base_to_left_wheel" type="continuous">
+    <parent link="base"/>
+    <child link="left_wheel"/>
+    <origin xyz="0.026 -0.57 0.1075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>  
+    <limit effort="50.0" velocity="1.0"/>  
+  </joint>
+  
+  <!-- Joint between base and right wheel -->
+  <joint name="base_to_right_wheel" type="continuous">
+    <parent link="base"/>
+    <child link="right_wheel"/>
+    <origin xyz="0.026 0.592 0.1075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>  
+    <limit effort="50.0" velocity="1.0"/>  
+  </joint>
+
+  <!-- Joint between life and pitch_frame -->
+  <joint name="lift_to_pf" type="continuous">
+    <parent link="lift"/>
+    <child link="pitch_frame"/>
+    <origin xyz="-0.995 0.0 -0.1575" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>  
+    <limit effort="50.0" velocity="1.0"/>  
+  </joint>
+
+  <!-- Joint between pitch_frame and frame -->
+  <joint name="pf_to_frame" type="continuous">
+    <parent link="pitch_frame"/>
+    <child link="frame"/>
+    <origin xyz="0 0.0 -0.175" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>  
+    <limit effort="50.0" velocity="1.0"/>  
+  </joint>
+</robot>
+
