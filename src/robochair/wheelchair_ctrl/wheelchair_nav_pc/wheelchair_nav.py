@@ -4,6 +4,7 @@ from geometry_msgs.msg import PointStamped, Point
 from std_msgs.msg import String
 import sys
 sys.path.append('../..')
+sys.path.append("/home/chariot/catkin_ws/src/ros_chariot_master/src/robochair/wheelchair_ctrl/wheelchair_api/")
 
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -13,9 +14,10 @@ import tf
 import tf.transformations as tf_trans
 import math
 from simple_pid import PID
-from wheelchair_pc import Wheelchair
+from wheelchair_api.wheelchair_pc import Wheelchair
 from collections import deque
 import numpy as np
+from wheelchair_ctrl.utils.wheelchair_load_pid import wheelchair_load_pid_config
 
 class WC_MotionCommander:
     def __init__(self):
@@ -25,26 +27,33 @@ class WC_MotionCommander:
         # History of past transforms for interpolation
         self.pose_history = deque(maxlen=2)  # Store (timestamp, translation, rotation)
 
-        # PID controllers
-        # self.linear_pid = PID(Kp=10, Ki=0.0, Kd=0.7, setpoint=0)
-        # self.linear_pid.output_limits = (0, 30)
-        self.forward_pid = PID(Kp=12.5, Ki=0.2, Kd=3, setpoint=0)
-        self.forward_pid.output_limits = (0, 15) #15
-
-        self.backward_pid = PID(Kp=35, Ki=0.2, Kd=0.7, setpoint=0)
-        self.backward_pid.output_limits = (0, 30)       
-
-        self.angular_pid = PID(Kp=1.125, Ki=0.0, Kd=0.7, setpoint=0)
-        self.angular_pid.output_limits = (-45,45)#(-45, 45)
+        # Load PID
+        self._wheelchair_set_pid()
 
         # Initialize current state
         self.x_current = self.y_current = self.z_current = 0.0
         self.roll_current = self.pitch_current = self.yaw_current = 0.0
 
+    def _wheelchair_set_pid(self):
+        # PID controllers
+        pid_config = wheelchair_load_pid_config()
+
+        fwd = pid_config['forward']
+        self.forward_pid = PID(Kp=fwd['p'], Ki=fwd['i'], Kd=fwd['d'], setpoint=0)
+        self.forward_pid.output_limits = (35, 100)
+
+        bwd = pid_config['backward']
+        self.backward_pid = PID(Kp=bwd['p'], Ki=bwd['i'], Kd=bwd['d'], setpoint=0)
+        self.backward_pid.output_limits = (35, 100)
+
+        ang = pid_config['angular']
+        self.angular_pid = PID(Kp=ang['p'], Ki=ang['i'], Kd=ang['d'], setpoint=0)
+        self.angular_pid.output_limits = (-100, 100)
+
     def _wheelchair_state_update(self):
         now = rospy.Time.now()
         try:
-            (trans, rot) = self.tf_listener.lookupTransform('/map', '/camera_link', rospy.Time(0))
+            (trans, rot) = self.tf_listener.lookupTransform('/map', '/wheelchair_base_link', rospy.Time(0))
             self.pose_history.append((now.to_sec(), trans, rot))
 
             self.x_current, self.y_current, self.z_current = trans
@@ -77,7 +86,7 @@ class WC_MotionCommander:
             self.x_current, self.y_current, self.z_current = interp_trans
             self.roll_current, self.pitch_current, self.yaw_current = tf_trans.euler_from_quaternion(interp_rot)
 
-    def _move_with_pid(self, move_func, target_value, is_rotation, timeout, pid, speed_min_thresh = 3):
+    def _move_with_pid(self, move_func, target_value, is_rotation, timeout, pid, speed_min_thresh = 2):
         start_time = time.time()
         min_loop_dt = 1.0 / 300.0  # seconds
 
@@ -93,68 +102,71 @@ class WC_MotionCommander:
 
         self._first_step = True
 
-        while not rospy.is_shutdown():
-            STATIC_PWM = 25
-            KICK_DURATION = 0.05
+        try:
+            while not rospy.is_shutdown():
+                STATIC_PWM = 25
+                KICK_DURATION = 0.05
 
-            loop_start = time.time()
-            elapsed = loop_start - start_time
+                loop_start = time.time()
+                elapsed = loop_start - start_time
 
-            # Timeout check
-            if elapsed > timeout:
-                rospy.logwarn("[WARN] Timeout reached.")
-                break
-
-            # Update current pose
-            self._wheelchair_state_update()
-
-            # Compute actual progress
-            if is_rotation:
-                yaw_progress = math.degrees(self._normalize_angle(self.yaw_current - yaw_start))
-                error = yaw_progress - target_value
-                if abs(error) < 2:
-                    rospy.loginfo("[INFO] Reached target.")
-                    break
-            else:
-                dx = self.x_current - x_start
-                dy = self.y_current - y_start
-                distance_progress = (dx ** 2 + dy ** 2) ** 0.5
-                error = distance_progress - target_value
-
-                if abs(error) < 0.025:
-                    rospy.loginfo("[INFO] Reached target.")
+                # Timeout check
+                if elapsed > timeout:
+                    rospy.logwarn("[WARN] Timeout reached.")
                     break
 
-            pwm = pid(error)
-            pwm = abs(pwm)
-            if abs(pwm) < speed_min_thresh:
-                speed_min_thresh
+                # Update current pose
+                self._wheelchair_state_update()
 
-            if self._first_step and pwm > 0:
-                pwm = max(pwm, STATIC_PWM)
-                if elapsed >= KICK_DURATION:
-                    self._first_step = False
+                # Compute actual progress
+                if is_rotation:
+                    yaw_progress = math.degrees(self._normalize_angle(self.yaw_current - yaw_start))
+                    error = yaw_progress - target_value
+                    if abs(error) < 2:
+                        rospy.loginfo("[INFO] Reached target.")
+                        break
+                else:
+                    dx = self.x_current - x_start
+                    dy = self.y_current - y_start
+                    distance_progress = (dx ** 2 + dy ** 2) ** 0.5
+                    error = distance_progress - target_value
 
-            move_func(abs(pwm))  # <- actual control command
+                    if abs(error) < 0.025:
+                        rospy.loginfo("[INFO] Reached target.")
+                        break
 
-            # --- Calculate and print rate ---
-            current_time = time.time()
-            if last_pub_time is not None:
-                dt = current_time - last_pub_time
-                rate = 1.0 / dt
-                rates.append(rate)
-                print(f'Control rate: {rate:.2f} Hz')
-            last_pub_time = current_time
-            # --------------------------------
+                pwm = pid(error)
+                pwm = abs(pwm)
+                if abs(pwm) < speed_min_thresh:
+                    speed_min_thresh
 
-            print(f'error: {error:.4f}, pwm: {pwm:.2f}')
+                if self._first_step and pwm > 0:
+                    pwm = max(pwm, STATIC_PWM)
+                    if elapsed >= KICK_DURATION:
+                        self._first_step = False
 
-            # Limit loop to 300 Hz
-            loop_duration = time.time() - loop_start
-            if loop_duration < min_loop_dt:
-                time.sleep(min_loop_dt - loop_duration)
+                move_func(abs(pwm))  # <- actual control command
 
-        self.robot.stop()
+                # --- Calculate and print rate ---
+                current_time = time.time()
+                if last_pub_time is not None:
+                    dt = current_time - last_pub_time
+                    rate = 1.0 / dt
+                    rates.append(rate)
+                    print(f'Control rate: {rate:.2f} Hz')
+                last_pub_time = current_time
+                # --------------------------------
+
+                print(f'error: {error:.4f}, pwm: {pwm:.2f}')
+
+                # Limit loop to 300 Hz
+                loop_duration = time.time() - loop_start
+                if loop_duration < min_loop_dt:
+                    time.sleep(min_loop_dt - loop_duration)
+
+        finally:
+            self.robot.stop()
+            rospy.loginfo("[INFO] Automatic stop issued.")
 
         # Optional: average control rate
         if rates:
@@ -185,15 +197,15 @@ class WC_MotionCommander:
 
         elif action == "backward":
             rospy.loginfo(f"[INFO] Backward {value}m (timeout: {timeout}s)")
-            self._move_with_pid(self.robot.v_backward, value, False, timeout, self.backward_pid,2)
+            self._move_with_pid(self.robot.v_backward, value, False, timeout, self.backward_pid)
 
         elif action == "left":
             rospy.loginfo(f"[INFO] Turn Left {value}° (timeout: {timeout}s)")
-            self._move_with_pid(self.robot.v_left, value, True, timeout, self.angular_pid,1.5)
+            self._move_with_pid(self.robot.v_left, value, True, timeout, self.angular_pid)
 
         elif action == "right":
             rospy.loginfo(f"[INFO] Turn Right {value}° (timeout: {timeout}s)")
-            self.angular_pid.setpoint = 0
+            # self.angular_pid.setpoint = 0
             self._move_with_pid(self.robot.v_right, value, True, timeout, self.angular_pid)
 
         elif action == "stop":
@@ -227,36 +239,38 @@ class WC_MotionCommander:
     def warm_up(self):
         time.sleep(2)
 
-    def run(hook_id:int,cmd:str):
+    def run(self, hook_id:int = 0,cmd:str = ""):
+        if hook_id == 1:
+            sequence = [
+                ("backward", 0.6), ("timeout", 10),
+                ("left", 80),   ("timeout", 10),
+                ("forward", 0.85), ("timeout", 10),
+                ("right", -86),   ("timeout", 10),
+                ("forward", 2.9), ("timeout", 10),
+                ("right", -84),   ("timeout", 10),
+                ("forward", 0.35), ("timeout", 10),
+                ("forward", 1), ("timeout", 10),
+                ("forward", 1.5), ("timeout", 30),
+            ]
+        elif hook_id == 2:
+            sequence = [
+                ("backward", 0.6), ("timeout", 10),
+                ("left", 80),   ("timeout", 10),
+                ("forward", 0.85), ("timeout", 10),
+                ("right", -86),   ("timeout", 10),
+                ("forward", 2.9), ("timeout", 10),
+                ("right", -84),   ("timeout", 10),
+                ("forward", 0.35), ("timeout", 10),
+                ("forward", 1), ("timeout", 10),
+                ("forward", 1.5), ("timeout", 30),
+            ]        
+
+        commander.execute_sequence(sequence)
+
         return cmd, True
 
 if __name__ == "__main__":
     rospy.init_node('wheelchair_motion_commander')
-    # sequence = [
-    #     ("forward", 1.5), ("timeout", 30),
-    #     # ("left", 90),   ("timeout", 10),
-    #     ("backward", 2), ("timeout", 30)
-    # ]
-
-    sequence = [
-        ("backward", 0.6), ("timeout", 10),
-        # ("forward", 1.5), ("timeout", 30),
-        ("left", 84),   ("timeout", 10),
-        ("forward", 0.85), ("timeout", 10),
-        ("right", -84),   ("timeout", 10),
-        ("forward", 1), ("timeout", 10),
-        ("forward", 1), ("timeout", 10),
-        ("right", -78),   ("timeout", 10),
-        ("forward", 1), ("timeout", 10),
-        ("hold", 999), ("timeout", 999),
-        ("forward", 1), ("timeout", 10),
-
-
-
-
-        # ("forward", 1.5), ("timeout", 30),
-
-    ]
     commander = WC_MotionCommander()
     commander.warm_up()
-    commander.execute_sequence(sequence)
+    commander.run(1)
